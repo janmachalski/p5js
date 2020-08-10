@@ -92,12 +92,14 @@ class Glos {
 
   // MUSIC HARMONY ENGINE
   przelicz() {
-    let f1 = 0;
+    let foo = 0;
+    foo += log(this.modus + int(!this.utonal) * this.skladnik);
+    foo -= log(this.modus + int(this.utonal) * this.skladnik);
     for (let i = 0; i < maxEpimeric; i++) {
-      f1 += this.epimeric[i] * log(liczbaPierwsza[i] / (liczbaPierwsza[i] - 1));
+      foo += this.epimeric[i] * log(liczbaPierwsza[i]);
+      foo -= this.epimeric[i] * log(liczbaPierwsza[i] - 1);
     }
-    f1 += log((this.modus + int(!this.utonal) * this.skladnik) / (this.modus + int(this.utonal) * this.skladnik));
-    this.freq = this.transposition * exp(f1);
+    this.freq = this.transposition * exp(foo);
     this.matString();
   }
 
