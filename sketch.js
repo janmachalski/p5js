@@ -1,17 +1,19 @@
 // JUST INTONATION HARMONY ENGINE
-// p5js
 // copyright Jan Machalski 2019
-// version 2020_07_25_17_28
+// version 2020_08_09
+// made in P5JS
 
-let dzwiek = 0; //audio ON/OFF
-const iloscGlosow = 2; // 3 dla triad ale domyslnie dwuglos
+const iloscGlosow = 3; // 3 dla triad ale domyslnie dwuglos
 const modusInit = 3; // three logarithmic/arithmetic intervals per octave
 const freqInit = 220.0; // reference frequency from which the rest is being built
 let utonalInit = false; // false=major true=minor first chord switch (negative harmony switch)
 const tuneHue = 530.0; // tune audio and colour spectrum if needed
 
-let glosy = [];
-let syntezatory = [];
+const maxModus = 5;
+const maxEpimeric = 10;
+let dzwiek = 0; //audio off przy starcie
+let glosy = []; //wysokosci dzwiekow i obliczenia ich
+let syntezatory = []; //oscylatory
 let liczbaPierwsza = []; //array liczb pierwszych
 let iToEpimeric = []; //dictionary of factorizations. Product (p/(p-1))^n
 let reverb;
@@ -26,10 +28,8 @@ function setup() {
     }
   }
   iToEpimericInit();
-  for (let i = 0; i < iloscGlosow; i++) {
+  for (let i = 0; i < iloscGlosow; i++) { //tworzy glosy po arpeggiu
     glosy[i] = new Glos();
-
-
     for (let j = 0; j < i; j++) {
       glosy[i].wyzej();
     }
@@ -37,7 +37,6 @@ function setup() {
     syntezatory[i] = new p5.Oscillator('sine');
   }
 
-  rozpiszMatme();
   reverb = new p5.Reverb();
   for (let i = 0; i < iloscGlosow; i++) {
     reverb.process(syntezatory[i], reverbTime, 1.5);
@@ -48,33 +47,26 @@ function setup() {
 function draw() {
   background(220);
   noStroke();
-
   //rysuj prostokaty
   for (let i = 0; i < iloscGlosow; i++) {
-    fill(freqToHue(glosy[i].freq), 255, 155);
-    rect(0, (height * (iloscGlosow - 1 - i) / iloscGlosow), width, height / iloscGlosow); // pierwsza wartosc to width*i/3
-
+    fill(freqToHue(glosy[i].freq), 150, 155);
+    rect(0, (height * (iloscGlosow - 1 - i) / iloscGlosow), width, height / iloscGlosow);
   }
-
   //rysuj rownania
   for (let i = 0; i < iloscGlosow; i++) {
     fill(0, 0, 0);
     text(glosy[i].string, 25, (height * (iloscGlosow - i) / iloscGlosow) - 10);
-
   }
-
   // wyswietl numery glosow
   for (let i = 0; i < iloscGlosow; i++) {
     fill(0, 0, 0);
     text(i, 5, height * (iloscGlosow - i) / iloscGlosow);
-
   }
+  text("Press mouse or n to start. Press 1 q a w s e d r f t g y h u j i k and arrows to operate.", 20, 20);
 
   if (dzwiek == 1) {
-
     for (let i = 0; i < iloscGlosow; i++) {
       syntezatory[i].freq(glosy[i].freq, 0.2);
-
     }
   }
   //wyjscie poza mape resetuje parametry
@@ -87,33 +79,50 @@ function draw() {
 
 class Glos {
   constructor() {
-    this.modus = modusInit
+    this.modus = modusInit;
     this.skladnik = 0;
     this.utonal = utonalInit;
     this.transposition = freqInit;
-
-    this.epimeric = []; // zero as default factorization
-    for (let i = 0; i < 16; i++) {
-      this.epimeric[i] = 0;
+    this.epimeric = [];
+    for (let i = 0; i < maxEpimeric; i++) {
+      this.epimeric[i] = 0; // zero as default factorization
     }
-    this.string = "loading";
+    this.string = "new voice loading";
   }
 
   // MUSIC HARMONY ENGINE
   przelicz() {
-    let epimoricPart = 1;
-    let epimericPart = 1;
-
-    if (this.utonal == true) {
-      epimoricPart = (this.modus / (this.modus + this.skladnik));
-    } else {
-      epimoricPart = ((this.modus + this.skladnik) / this.modus);
+    let f1 = 0;
+    for (let i = 0; i < maxEpimeric; i++) {
+      f1 += this.epimeric[i] * log(liczbaPierwsza[i] / (liczbaPierwsza[i] - 1));
     }
-    for (let i = 0; i < 8; i++) {
-      epimericPart *= pow((liczbaPierwsza[i] / (liczbaPierwsza[i] - 1)), this.epimeric[i]);
-    }
-    this.freq = this.transposition * epimoricPart * epimericPart;
+    f1 += log((this.modus + int(!this.utonal) * this.skladnik) / (this.modus + int(this.utonal) * this.skladnik));
+    this.freq = this.transposition * exp(f1);
+    this.matString();
+  }
 
+  //returns object variables
+  info() {
+    let stringZmiennych = "transp " + this.transposition
+    stringZmiennych += " utonal " + int(this.utonal)
+    stringZmiennych += " modus " + str(this.modus);
+    stringZmiennych += " stopien " + str(this.skladnik);
+    stringZmiennych += " epimericFactors "
+    for (let i = 0; i < maxEpimeric; i++) {
+      stringZmiennych += " " + str(this.epimeric[i]);
+    }
+    return stringZmiennych;
+  }
+
+  //zwraca wzor na czestotliwosci jako string (zapis potegowy)
+  matString() {
+    this.string = this.transposition + "Hz";
+    this.string += " * [(" + this.modus + " + " + int(!this.utonal) * this.skladnik
+    this.string += ") / (" + this.modus + " + " + int(this.utonal) * this.skladnik + ")]";
+    for (let i = 0; i < 4; i++) {
+      this.string += " * (" + liczbaPierwsza[i] + "/" + (liczbaPierwsza[i] - 1) + ")^" + this.epimeric[i];
+    }
+    this.string += " = " + nf(this.freq, 0, 3) + "Hz";
   }
 
   changeUtonal() { // "upside down" harmony switch (negative harmony)
@@ -147,9 +156,7 @@ class Glos {
     } else {
       this.skladnik += 1;
     }
-
     this.przelicz();
-
   }
 
   //przewroty akordow, moze da sie scalic z tym powyzej w jedna funkcje
@@ -170,7 +177,7 @@ class Glos {
     this.przelicz();
   }
 
-
+  // przewroty akordow
   wyzej() {
     switch (this.utonal) {
       case false:
@@ -192,7 +199,7 @@ class Glos {
     }
     this.przelicz();
   }
-
+  // przewroty akordow
   nizej() {
     switch (this.utonal) {
       case false:
@@ -212,33 +219,20 @@ class Glos {
         }
         break;
     }
-
-  }
-
-  transponuj(wpiszLicznik, wpiszMianownik) {
-    for (let i = 0; i < 9; i++) {
-      this.epimeric[i] += iToEpimeric[wpiszLicznik][i];
-      this.epimeric[i] -= iToEpimeric[wpiszMianownik][i];
-
-    }
     this.przelicz();
   }
 
-  /* Czyli poszczegolny glos mozna:
- -Przenosic przez oktawy
- - Przeniesc w gore lub w dol po skladnikach akordu
-  -Przewrocic utonalnie
-  -Przetransponowac o dowolny interwal
-  -Przetransponowac o interwal zawarty w danym systemie (modus=2 to tylko kwarty i kwinty)
-  (do zrobienia. Fajnie jakby zmieniajac modus generowaly sie dodatkowe przyciski)
-  -Wtracic zmiane modusa na chwile (czyli w systemie triad modus=3, mozna by na chwile zmienic
-  we wzorze na czestotliwosc danego glosu 3 na np. 2 albo 4 dajac w ten sposob dzwieki przejsciowe.)
-  Do zrobienia: przetransponowac akord tak, aby struktura byla ta sama, ale wybrany dzwiek zostal w miejscu
-  */
+  transponuj(wpiszLicznik, wpiszMianownik) { //np. z akordu C do D to transponuj(9,8)
+    for (let i = 0; i < 9; i++) {
+      this.epimeric[i] += iToEpimeric[wpiszLicznik][i];
+      this.epimeric[i] -= iToEpimeric[wpiszMianownik][i];
+    }
+    this.przelicz();
+  }
+  // transpozycja, w ktorej wybiera sie ktory skladnik akordu ma zostac w miejscu i jakim nowym skladnikiem ma byc
   itoi(i1, i2) {
     switch (this.utonal) {
       case false:
-        //        this.transposition *= ((this.modus + i1) / this.modus) / ((this.modus + i2) / this.modus);
         this.transponuj((this.modus + i1), (this.modus + i2));
         if (i1 > i2) {
           for (let i = 0; i < i1 - i2; i++) {
@@ -248,12 +242,9 @@ class Glos {
           for (let i = 0; i < i2 - i1; i++) {
             this.wyzej();
           }
-        } else {
-
         }
         break;
       case true:
-        //       this.transposition *= (this.modus / (this.modus + i1)) / (this.modus / (this.modus + i2));
         this.transponuj((this.modus + i2), (this.modus + i1));
         if (i1 < i2) {
           for (let i = 0; i < i2 - i1; i++) {
@@ -263,77 +254,35 @@ class Glos {
           for (let i = 0; i < i1 - i2; i++) {
             this.wyzej();
           }
-        } else {
-
         }
         break;
     }
     this.przelicz();
   }
-  // tutaj wpisac (chyba zrobione itoi) funkcje dotyczaca transpozycji struktury harmonicznej wzgledem tego glosu.
-  /* Wybieramy glos, ktory ma zostac w miejscu, czyli np. glos ma dzwiek E w trojdzwieku C-dur.
-  Wybieramy docelowy skladnik dla tego glosu, np poprzez klikniecie na inny grajacy glos
-  (np. grajace G, czyli kwinte obecnego trojdzwieku).
-  Czyli np. chcemy aby cala harmonia zmienila sie wzgledem tego E,
-  czyli aktualny glos grajacy E, nie gral tercji akordu tylko kwinte (jak G) w nowym akordzie (A-dur).
-  Podstawowa czestotliwosc wszystkich glosow zostaje przemnozona przez interwal pomiedzy wybranym
-  glosem ktory ma zostac w miejscu, a relatywnym innym, a nastepnie wszystkie glosy przesuwaja sie
-  ("po arpeggiu") w dol lub w gore poprzez liczenie 0 1 2, albu 0 2 1, aby zrekompensowac
-  roznice wysokosci.
-  Czyli brzmi C-dur jako C=f*((3+1)/3)*2^0, E=f*((3+2)/3)*2^0, G=f*((3+0)/3)*2^1
-  Klikamy E f*((3+2)/3)*2^0 i klikamy G f*((3+0)/3)*2^1
-  Wszystkie glosy sa przemnozone przez 5/6
-  Ulamek jest mniejszy od 1, wiec wszystkie glosy powinny isc w gore dla rekompensaty.
-  Wszystkie glosy ida w gore (012), czyli dzwiek E przechodzi na ten sam dzwiek,
-  ale zapisany jako f*(5/6)*((3+0)/3)*2^1
-  (przechodzac na 0 po 0 1 2, lub na 2 przed 0 1 2, trzeba zmieniac oktawy)
-  */
   modusUp() {
-    this.modus += 1;
-
+    if (this.modus <= maxModus) {
+      this.modus += 1;
+    }
     this.przelicz();
   }
   modusDown() {
     if (this.modus > 1) {
       this.modus -= 1;
-      if (this.modus == this.skladnik) {
-        this.skladnik = 0;
-        switch (this.utonal) {
-          case false:
-            this.epimeric[0] += 1;
-            break;
-          case true:
-            this.epimeric[0] -= 1;
-            break;
-        }
-      }
     }
-
+    if (this.modus < this.skladnik) {
+      this.skladnik = this.modus - 1;
+    }
     this.przelicz();
   }
-
-
-
-}
-
-// TO DO rozpiszMatme chyba powinno byc metoda dla klasy glosy (return string)
-//writes equation as string
-function rozpiszMatme() {
-  for (let i = 0; i < iloscGlosow; i++) {
-    glosy[i].string = "Glos[" + i + "]:   " + glosy[i].transposition + "Hz";
-    if (glosy[i].utonal == true) {
-      glosy[i].string += " * [(" + glosy[i].modus + " / (" + glosy[i].modus + " + " + glosy[i].skladnik + ")]";
-
-    } else {
-      glosy[i].string += " * [(" + glosy[i].modus + " + " + glosy[i].skladnik + ") / " + glosy[i].modus + "]";
-
+  reset() {
+    this.modus = modusInit;
+    this.skladnik = 0;
+    this.transposition = freqInit;
+    for (let i = 0; i < 10; i++) {
+      this.epimeric[i] = 0;
     }
-    for (let j = 0; j < 4; j++) {
-      glosy[i].string += " * (" + liczbaPierwsza[j] + "/" + (liczbaPierwsza[j] - 1) + ")^" + glosy[i].epimeric[j];
-    }
-    glosy[i].string += " = " + glosy[i].freq + "Hz";
+    this.przelicz();
   }
-
 }
 
 // SOUND CHROMA TO COLOUR CHROMA CONVERSION (frequency to hue)
@@ -344,12 +293,19 @@ function freqToHue(freq) {
   return h;
 }
 
+function isPrime(num) {
+  for (var i = 2; i <= sqrt(num); i++) {
+    if (num % i === 0) return false;
+  }
+  return num !== 1 && num !== 0;
+}
+
+// USER INTERFACE
 function mousePressed() {
+  reset();
   klikniecieX = mouseX;
   klikniecieY = mouseY;
-
   if (dzwiek == 0) {
-
     dzwiek = 1;
     for (let i = 0; i < iloscGlosow; i++) {
       syntezatory[i].amp(0.0);
@@ -357,31 +313,15 @@ function mousePressed() {
       syntezatory[i].amp(0.025, 1.0);
     }
   }
-
-
-  //  for (let i = 0; i < iloscGlosow; i++) {}
-
 }
 
 function mouseReleased() {
-
   //  for (let i = 0; i < iloscGlosow; i++) {
   //    syntezatory[i].amp(0.06, 0.4);
   //  }
-
   for (let i = 0; i < iloscGlosow; i++) {
-    // glosy[i].itoi(2, 1);
-    // glosy[i].transponuj(5,4);
-    // glosy[i].count012();
-    // glosy[i].count210();
-    //  glosy[i].nizej();
-    //  glosy[i].wyzej();
-    //  glosy[i].modusDown();
-    // glosy[i].modusUp();
     glosy[i].przelicz();
-
   }
-  rozpiszMatme();
 }
 
 function keyPressed() {
@@ -476,14 +416,6 @@ function keyPressed() {
   for (let i = 0; i < iloscGlosow; i++) {
     glosy[i].przelicz();
   }
-  rozpiszMatme();
-}
-
-function isPrime(num) {
-  for (var i = 2; i <= sqrt(num); i++) {
-    if (num % i === 0) return false;
-  }
-  return num !== 1 && num !== 0;
 }
 
 function reset() {
@@ -493,14 +425,11 @@ function reset() {
     glosy[i].transposition = freqInit;
     for (let j = 0; j < 10; j++) {
       glosy[i].epimeric[j] = 0;
-
     }
     for (let j = 0; j < i; j++) {
       glosy[i].wyzej();
     }
     glosy[i].przelicz();
-
-
   }
 }
 //LOADS A DICTIONARY OF EPIMORIC FACORIZATION OF INT NUMBERS
@@ -535,5 +464,5 @@ function iToEpimericInit() {
   iToEpimeric[26] = [4, 1, 0, 0, 0, 1, 0, 0, 0, 0];
   iToEpimeric[27] = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
   iToEpimeric[28] = [4, 1, 0, 1, 0, 0, 0, 0, 0, 0];
-
+  iToEpimeric[29] = [4, 1, 0, 1, 0, 0, 0, 0, 0, 1];
 }
