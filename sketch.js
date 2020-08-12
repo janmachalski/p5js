@@ -287,9 +287,10 @@ class Glos {
   }
   edo() { //kwantyzuj do 12EDO (chyba dziala)
     let i;
-    for (i = 55; i < this.freq; i *= pow(2, 1 / 12)) {}
-    if (this.freq / i > (i * pow(2, 1 / 12)) / this.freq) {
-      return i * pow(2, 1 / 12);
+    let polTon = pow(2, 1/ 12);
+    for (i = 55; i < this.freq; i *= polTon) {}
+    if (this.freq / i > (i * polTon) / this.freq) {
+      return (i * polTon);
     } else {
       return i;
     }
