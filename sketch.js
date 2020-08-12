@@ -1,6 +1,6 @@
 // JUST INTONATION HARMONY ENGINE
 // copyright Jan Machalski 2019
-// version 2020_08_09
+// version 2020_08_12
 // made in P5JS
 
 const iloscGlosow = 3; // 3 dla triad ale domyslnie dwuglos
@@ -17,7 +17,7 @@ let syntezatory = []; //oscylatory
 let liczbaPierwsza = []; //array liczb pierwszych
 let iToEpimeric = []; //dictionary of factorizations. Product (p/(p-1))^n
 let reverb;
-let reverbTime = 4;
+let reverbTime = 5;
 
 function setup() {
   createCanvas(600, 600);
@@ -66,12 +66,13 @@ function draw() {
 
   if (dzwiek == 1) {
     for (let i = 0; i < iloscGlosow; i++) {
-      syntezatory[i].freq(glosy[i].freq, 0.2);
+      syntezatory[i].freq(glosy[i].freq, 0.015);
+      //12EDO: zmien glosy[i].freq na glosy[i].edo()
     }
   }
   //wyjscie poza mape resetuje parametry
   for (let i = 0; i < iloscGlosow; i++) {
-    if (glosy[i].freq > 4000 ^ glosy[i].freq < 80) {
+    if (glosy[i].freq > 5000 ^ glosy[i].freq < 80) {
       reset();
     }
   }
@@ -92,17 +93,23 @@ class Glos {
 
   // MUSIC HARMONY ENGINE
   przelicz() {
-    let foo = 0;
-    foo += log(this.modus + int(!this.utonal) * this.skladnik);
-    foo -= log(this.modus + int(this.utonal) * this.skladnik);
+    let x = 0;
+    x += log(this.modus + int(!this.utonal) * this.skladnik);
+    x -= log(this.modus + int(this.utonal) * this.skladnik);
     for (let i = 0; i < maxEpimeric; i++) {
-      foo += this.epimeric[i] * log(liczbaPierwsza[i]);
-      foo -= this.epimeric[i] * log(liczbaPierwsza[i] - 1);
+      x += this.epimeric[i] * log(liczbaPierwsza[i]);
+      x -= this.epimeric[i] * log(liczbaPierwsza[i] - 1);
     }
-    this.freq = this.transposition * exp(foo);
+    this.freq = this.transposition * exp(x);
     this.matString();
   }
 
+  //epimeric math. Np. kwarta to foo(1, -1) bo +1oktawa -1kwinta
+  foo() {
+  for (let i = 0; i < arguments.length; i++){
+    this.epimeric[i] += arguments[i];
+  }
+  }
   //returns object variables
   info() {
     let stringZmiennych = "transp " + this.transposition
@@ -225,8 +232,10 @@ class Glos {
   }
 
   transponuj(wpiszLicznik, wpiszMianownik) { //np. z akordu C do D to transponuj(9,8)
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < iToEpimeric[wpiszLicznik].length; i++) {
       this.epimeric[i] += iToEpimeric[wpiszLicznik][i];
+    }
+    for (let i = 0; i < iToEpimeric[wpiszMianownik].length; i++) {
       this.epimeric[i] -= iToEpimeric[wpiszMianownik][i];
     }
     this.przelicz();
@@ -276,6 +285,15 @@ class Glos {
     }
     this.przelicz();
   }
+  edo() { //kwantyzuj do 12EDO (chyba dziala)
+    let i;
+    for (i = 55; i < this.freq; i *= pow(2, 1 / 12)) {}
+    if (this.freq / i > (i * pow(2, 1 / 12)) / this.freq) {
+      return i * pow(2, 1 / 12);
+    } else {
+      return i;
+    }
+  }
   reset() {
     this.modus = modusInit;
     this.skladnik = 0;
@@ -295,11 +313,11 @@ function freqToHue(freq) {
   return h;
 }
 
-function isPrime(num) {
-  for (var i = 2; i <= sqrt(num); i++) {
-    if (num % i === 0) return false;
+function isPrime(int) {
+  for (var i = 2; i <= sqrt(int); i++) {
+    if (int % i === 0) return false;
   }
-  return num !== 1 && num !== 0;
+  return int !== 1 && int !== 0;
 }
 
 // USER INTERFACE
@@ -335,27 +353,69 @@ function keyPressed() {
     }
   } else if (key == "q") {
     for (let i = 0; i < iloscGlosow; i++) {
-      glosy[i].itoi(0, 1);
+      switch (glosy[i].utonal) {
+        case false:
+          glosy[i].itoi(0, 1);
+          break;
+        case true:
+          glosy[i].itoi(1, 0);
+          break;
+      }
     }
   } else if (key == "a") {
     for (let i = 0; i < iloscGlosow; i++) {
-      glosy[i].itoi(1, 0);
+      switch (glosy[i].utonal) {
+        case false:
+          glosy[i].itoi(1, 0);
+          break;
+        case true:
+          glosy[i].itoi(0, 1);
+          break;
+      }
     }
   } else if (key == "w") {
     for (let i = 0; i < iloscGlosow; i++) {
-      glosy[i].itoi(1, 2);
+      switch (glosy[i].utonal) {
+        case false:
+          glosy[i].itoi(1, 2);
+          break;
+        case true:
+          glosy[i].itoi(2, 1);
+          break;
+      }
     }
   } else if (key == "s") {
     for (let i = 0; i < iloscGlosow; i++) {
-      glosy[i].itoi(2, 1);
+      switch (glosy[i].utonal) {
+        case false:
+          glosy[i].itoi(2, 1);
+          break;
+        case true:
+          glosy[i].itoi(1, 2);
+          break;
+      }
     }
   } else if (key == "e") {
     for (let i = 0; i < iloscGlosow; i++) {
-      glosy[i].itoi(2, 0);
+      switch (glosy[i].utonal) {
+        case false:
+          glosy[i].itoi(2, 0);
+          break;
+        case true:
+          glosy[i].itoi(0, 2);
+          break;
+      }
     }
   } else if (key == "d") {
     for (let i = 0; i < iloscGlosow; i++) {
-      glosy[i].itoi(0, 2);
+      switch (glosy[i].utonal) {
+        case false:
+          glosy[i].itoi(2, 0);
+          break;
+        case true:
+          glosy[i].itoi(0, 2);
+          break;
+      }
     }
   } else if (key == "r") {
     for (let i = 0; i < iloscGlosow; i++) {
@@ -391,10 +451,17 @@ function keyPressed() {
     glosy[0].wyzej();
   } else if (key == "j") {
     glosy[0].nizej();
+  } else if (key == "7") {
+    glosy[0].wyzej();
+    glosy[0].wyzej();
+  } else if (key == "m") {
+    glosy[0].nizej();
+    glosy[0].nizej();
   } else if (key == "i") {
     glosy[1].wyzej();
   } else if (key == "k") {
     glosy[1].nizej();
+
   } else if (keyCode === LEFT_ARROW) {
     for (let i = 0; i < iloscGlosow; i++) {
       glosy[i].nizej();
@@ -414,7 +481,6 @@ function keyPressed() {
   } else {
     print("No keyboard shortcut found.");
   }
-
   for (let i = 0; i < iloscGlosow; i++) {
     glosy[i].przelicz();
   }
@@ -438,33 +504,33 @@ function reset() {
 function iToEpimericInit() {
   // int to prime epimeric factorization: int = [n1, n2, n3, n4...]
   // int = (2)^n1*(3/2)^n2*(5/4)^n3*(7/6)^n4*(11/10)^n5 etc.
-  iToEpimeric[1] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[2] = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[3] = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[4] = [2, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[5] = [2, 0, 1, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[6] = [2, 1, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[7] = [2, 1, 0, 1, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[8] = [3, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[9] = [2, 2, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[10] = [3, 0, 1, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[11] = [1, 0, 1, 0, 1, 0, 0, 0, 0, 0];
-  iToEpimeric[12] = [3, 1, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[13] = [3, 1, 0, 0, 0, 1, 0, 0, 0, 0];
-  iToEpimeric[14] = [3, 1, 0, 1, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[15] = [3, 1, 1, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[16] = [4, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[17] = [4, 0, 0, 0, 0, 0, 1, 0, 0, 0];
-  iToEpimeric[18] = [3, 2, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[19] = [3, 2, 0, 0, 0, 0, 0, 1, 0, 0];
-  iToEpimeric[20] = [4, 0, 1, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[21] = [3, 2, 0, 1, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[22] = [4, 0, 1, 0, 1, 0, 0, 0, 0, 0];
-  iToEpimeric[23] = [4, 0, 1, 0, 1, 0, 0, 0, 1, 0];
-  iToEpimeric[24] = [4, 1, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[25] = [4, 2, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[26] = [4, 1, 0, 0, 0, 1, 0, 0, 0, 0];
-  iToEpimeric[27] = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
-  iToEpimeric[28] = [4, 1, 0, 1, 0, 0, 0, 0, 0, 0];
+  iToEpimeric[1] = [0];
+  iToEpimeric[2] = [1];
+  iToEpimeric[3] = [1, 1];
+  iToEpimeric[4] = [2];
+  iToEpimeric[5] = [2, 0, 1];
+  iToEpimeric[6] = [2, 1];
+  iToEpimeric[7] = [2, 1, 0, 1];
+  iToEpimeric[8] = [3];
+  iToEpimeric[9] = [2, 2];
+  iToEpimeric[10] = [3, 0, 1];
+  iToEpimeric[11] = [1, 0, 1, 0, 1];
+  iToEpimeric[12] = [3, 1];
+  iToEpimeric[13] = [3, 1, 0, 0, 0, 1];
+  iToEpimeric[14] = [3, 1, 0, 1];
+  iToEpimeric[15] = [3, 1, 1];
+  iToEpimeric[16] = [4];
+  iToEpimeric[17] = [4, 0, 0, 0, 0, 0, 1];
+  iToEpimeric[18] = [3, 2];
+  iToEpimeric[19] = [3, 2, 0, 0, 0, 0, 0, 1];
+  iToEpimeric[20] = [4, 0, 1];
+  iToEpimeric[21] = [3, 2, 0, 1];
+  iToEpimeric[22] = [4, 0, 1, 0, 1];
+  iToEpimeric[23] = [4, 0, 1, 0, 1, 0, 0, 0, 1];
+  iToEpimeric[24] = [4, 1];
+  iToEpimeric[25] = [4, 2];
+  iToEpimeric[26] = [4, 1, 0, 0, 0, 1];
+  iToEpimeric[27] = [3, 3];
+  iToEpimeric[28] = [4, 1, 0, 1];
   iToEpimeric[29] = [4, 1, 0, 1, 0, 0, 0, 0, 0, 1];
 }
