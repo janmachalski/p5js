@@ -1,10 +1,10 @@
 // JUST INTONATION HARMONY ENGINE
 // copyright Jan Machalski 2019
-// version 2020_08_12
+// version 2020_08_15
 // made in P5JS
 
-const iloscGlosow = 3; // 3 dla triad ale domyslnie dwuglos
-const modusInit = 3; // three logarithmic/arithmetic intervals per octave
+const iloscGlosow = 3;
+const modusInit = 3; // three logarithmic/arithmetic (otonal/utonal) intervals per octave
 const freqInit = 220.0; // reference frequency from which the rest is being built
 let utonalInit = false; // false=major true=minor first chord switch (negative harmony switch)
 const tuneHue = 530.0; // tune audio and colour spectrum if needed
@@ -104,11 +104,23 @@ class Glos {
     this.matString();
   }
 
-  //epimeric math. Np. kwarta to foo(1, -1) bo +1oktawa -1kwinta
-  foo() {
-  for (let i = 0; i < arguments.length; i++){
-    this.epimeric[i] += arguments[i];
+  //prime epimeric math
+  //Np. kwarta to pep(1, -1) bo +1oktawa -1kwinta
+  pep() {
+    for (let i = 0; i < arguments.length; i++) {
+      this.epimeric[i] += arguments[i];
+    }
+    this.przelicz();
   }
+
+  set(utonal, modus, skladnik, oktawa, kwinta, tercja) {
+    this.utonal = utonal;
+    this.modus = modus;
+    this.stopien = skladnik;
+    for (let i = 0; i < arguments.length - 3; i++) {
+      this.epimeric[i] += arguments[i + 3];
+    }
+    this.przelicz();
   }
   //returns object variables
   info() {
@@ -287,7 +299,7 @@ class Glos {
   }
   edo() { //kwantyzuj do 12EDO (chyba dziala)
     let i;
-    let polTon = pow(2, 1/ 12);
+    let polTon = pow(2, 1 / 12);
     for (i = 55; i < this.freq; i *= polTon) {}
     if (this.freq / i > (i * polTon) / this.freq) {
       return (i * polTon);
@@ -356,10 +368,10 @@ function keyPressed() {
     for (let i = 0; i < iloscGlosow; i++) {
       switch (glosy[i].utonal) {
         case false:
-          glosy[i].itoi(0, 1);
+          glosy[i].itoi(1, 0);
           break;
         case true:
-          glosy[i].itoi(1, 0);
+          glosy[i].itoi(0, 1);
           break;
       }
     }
@@ -367,10 +379,10 @@ function keyPressed() {
     for (let i = 0; i < iloscGlosow; i++) {
       switch (glosy[i].utonal) {
         case false:
-          glosy[i].itoi(1, 0);
+          glosy[i].itoi(0, 1);
           break;
         case true:
-          glosy[i].itoi(0, 1);
+          glosy[i].itoi(1, 0);
           break;
       }
     }
@@ -411,10 +423,10 @@ function keyPressed() {
     for (let i = 0; i < iloscGlosow; i++) {
       switch (glosy[i].utonal) {
         case false:
-          glosy[i].itoi(2, 0);
+          glosy[i].itoi(0, 2);
           break;
         case true:
-          glosy[i].itoi(0, 2);
+          glosy[i].itoi(2, 0);
           break;
       }
     }
