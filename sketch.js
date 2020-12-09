@@ -81,14 +81,16 @@ function draw() {
       break;
 
     case false:
-      //rysuj rownania
-      textSize(20);
+      //tu bylo "rysuj rownania"
+
+      break;
+  }
+  //rysuj rownania przeklejone
+        textSize(20);
       for (let i = 0; i < iloscGlosow; i++) {
         fill(kolorTekstu);
         text(glosy[i].string, 25, (height * (iloscGlosow - i) / iloscGlosow) - 10);
       }
-      break;
-  }
 
   if (dzwiek == 1) {
     for (let i = 0; i < iloscGlosow; i++) {
