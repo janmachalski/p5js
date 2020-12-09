@@ -371,7 +371,7 @@ function isPrime(int) {
 // USER INTERFACE
 function mousePressed() {
   reset();
-  instrukcja = false;
+//  instrukcja = false; //uncomment to turn off instructions
   saturacja = 180;
   swiatlo = 125;
   klikniecieX = mouseX;
