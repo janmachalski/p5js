@@ -73,7 +73,7 @@ function draw() {
       text("Press B to switch between closed and open voicings", 20, wierszeOdstep * 5);
       text("Press up and down arrows to change the modus. Voices might overlap.", 20, wierszeOdstep * 6);
       text("R F T G Y H are the shortcuts for pressing 1 and qawsed simultaneously.", 20, wierszeOdstep * 7);
-      text("6 Y H N U J are like left and right arrow but work for 1 voice only.", 20, wierszeOdstep * 8);
+      text("T Y H N U J are like left and right arrow but work for 1 voice only.", 20, wierszeOdstep * 8);
       // wyswietl numery glosow
       for (let i = 0; i < iloscGlosow; i++) {
         text(i, 5, height * (iloscGlosow - i) / iloscGlosow);
